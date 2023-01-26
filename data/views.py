@@ -1,13 +1,19 @@
 from rest_framework.views import APIView, Request, Response
+from rest_framework.generics import ListCreateAPIView
 from django import forms
 from .serializer import DataSerializer
 from trasation.models import Trasation
+from trasation.serializer  import TransationSerializer
 import ipdb
+from .models import Data
+import os
 
 class UploadForm(forms.Form):
     file = forms.FileField()
-class TransationView(APIView):
-    def post(self, request:Request) -> Response:
+class TransationView(ListCreateAPIView):   
+    serializer_class = DataSerializer
+    queryset = Data.objects.filter()
+    def post(self, request:Request):
         form = UploadForm(request.POST, request.FILES)
         if form.is_valid():
             name = form.files['file']
@@ -35,14 +41,16 @@ class TransationView(APIView):
                         type = dict(type=type, description="Recebimento DOC", nature="Entrada", signal="+")
                     if type == "9":
                         type = dict(type=type, description="Aluguel", nature="Saída", signal="-")
-                    transation_obj,_ = Trasation.objects.get_or_create(**type)
+                    create,_ = Trasation.objects.get_or_create(**type) 
                     date = valor[1:9]
                     year = date[0:4]
                     month = date[4:6]
                     day = date[6:]
                     date =year+"-"+month+"-"+day
                     value = valor[9:19]
-                    value = int(value) / 100
+                    value = float(value) / 100
+                    if create.signal == "-":
+                        value = - value
                     recipient_cpf = valor[19:30]
                     card = valor[30:42]
                     hour = valor[42:48]
@@ -62,15 +70,28 @@ class TransationView(APIView):
                         value=value,
                         date=date,
                         hour=hour,
-                        type=transation_obj.id
+                        type=create.id
                         )
                     
                     serializer = DataSerializer(data=transation)
                     serializer.is_valid(raise_exception=True)
-                    serializer.save()
-                    
-                    
-
-                    
-                    
+                    serializer.save()            
+        os.remove(name.name)
         return Response({"detail":"Dados extraidos com sucesso !"}, 201)
+    def get(self, request, *args, **kwargs):
+        data = Data.objects.all()
+        serializer = DataSerializer(data, many=True)
+        type = Trasation.objects.all()
+        serializer2 = TransationSerializer(type, many=True)
+        result = []
+        for dado in serializer.data:
+            new = dict(store_name= dado["store_name"])
+            if new not in result:
+                result.append(new)            
+        for names in result:
+            all = Data.objects.filter(store_name=names["store_name"])
+            names["saldo"] = 0
+            serializer = DataSerializer(all, many=True)
+            for val in serializer.data:
+                names["saldo"] = names["saldo"] + float(val["value"])                
+        return Response(result)

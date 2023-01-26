@@ -1,9 +1,8 @@
 from rest_framework import serializers
 from data.models import Data
+from trasation.serializer import TransationSerializer
 from trasation.models import Trasation
 import ipdb
-# um tipo de transação para muitas transações
-# 1pn
 class DataSerializer(serializers.ModelSerializer):
     class Meta:
         model = Data

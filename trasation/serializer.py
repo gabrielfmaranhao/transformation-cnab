@@ -8,4 +8,6 @@ class TransationSerializer(serializers.ModelSerializer):
         model = Trasation
         fields = ["id","type","description", "nature", "signal"]
         read_only_fields = ["id"]
+    def create(self, validated_data):
+        ipdb.set_trace()
     
