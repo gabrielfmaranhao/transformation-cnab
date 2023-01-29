@@ -4,9 +4,10 @@ from django import forms
 from .serializer import DataSerializer
 from trasation.models import Trasation
 from trasation.serializer  import TransationSerializer
-import ipdb
 from .models import Data
 import os
+from django.shortcuts import render
+
 
 class UploadForm(forms.Form):
     file = forms.FileField()
@@ -95,3 +96,5 @@ class TransationView(ListCreateAPIView):
             for val in serializer.data:
                 names["saldo"] = names["saldo"] + float(val["value"])                
         return Response(result)
+    def upload(request):
+        return render(request, 'upload.html')    
